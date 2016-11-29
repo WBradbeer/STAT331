@@ -28,7 +28,7 @@ Mfull.log = lm(log(Strike) ~ (. - Country)^2, data = strike)
 # basic model
 M0 <- lm(Strike ~ 1, data = strike)
 # full model without country - interaction effects
-Mfull <- lm(Strike ~ (. - Country)^2 + Country, data = strike)
+Mfull <- lm(Strike ~ (. - Country - Year)^2 , data = strike)
 # forward step model from intercept to full
 Mfwd <- step(M0, scope=list(lower=M0, upper=Mfull), direction='forward', trace=FALSE)
 # backward step model from full to intercept
@@ -50,9 +50,9 @@ n <- length(strike$Strike)
 samp.size <- 400
 results <- rep(0, length(models))
 
-for(i in 1:100) {
+for(i in 1:2000) {
   # seperate training and test data
-  samp <- sample.int(n, size = samp.size)
+  samp <- sample(n, samp.size)
   strike.train <- strike[samp,]
   strike.test <- strike[-samp,]
   j <- 1
