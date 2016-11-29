@@ -34,7 +34,7 @@ Mback <- step(Mfull, scope=list(lower=M0, upper=Mfull), direction='backward', tr
 Mstep <- step(M2, scope=list(lower=M0, upper=Mfull), direction='both', trace=FALSE)
 
 models <- list(M0, M1, M2, Mfwd, Mback, Mstep)
-
+ 
 n <- length(strike$Strike)
 samp.size <- 400
 results <- rep(0, length(models))
