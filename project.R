@@ -6,7 +6,7 @@ strike$Centr <- as.factor(strike$Centr)
 strike$Country <- as.factor(strike$Country)
 #strike$Unemp2 <- strike$Unemp^2
 #strike$Demo2 <- strike$Demo^2
-strike$Infl2 <- strike$Infl^2
+#strike$Infl2 <- strike$Infl^2
 
 # Investigate to look for patterns  
 summary(strike)
@@ -80,7 +80,7 @@ res.stand <- res.stu/sigma(Mfwd)
 cex <- 0.8 
 par(mar = c(4,4,0.1,0.1))
 plot(predict(Mfwd), res, pch=21, bg="black", cex=cex, cex.axis=cex, 
-     xlab="Predicted # of strike days", ylab="Residual Strike days")
+     xlab="Predicted # of strike-hours", ylab="Residual strike-hours")
 points(predict(Mfwd), res.stu, pch=21, bg="red", cex=cex)
 legend(x="topleft", c("Residuals", "Studentized Residuals"), pch=21,
        pt.bg = c("black", "red"), pt.cex=cex, cex=cex)
