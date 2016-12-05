@@ -14,8 +14,8 @@ strike$Dens <- log(strike$Dens)
 #strike$Demo[strike$Demo<=0] <- 0.00000000001
 #strike$Dens[strike$Dens<=0] <- 0.00000000001
 
-#correlMatrix <- cbind(strike$Unemp, strike$Infl, strike$Demo, strike$Dens, strike$Centr)
-#cor(correlMatrix)
+correlMatrix <- cbind(strike$Unemp, strike$Infl, strike$Demo, strike$Dens, strike$Centr)
+cor(correlMatrix)
 
 # Reason that these should affect strike
 M1 = lm(Strike ~ Centr + Infl + Centr:Infl, data = strike)
