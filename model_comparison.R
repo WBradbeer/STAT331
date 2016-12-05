@@ -25,6 +25,8 @@ M4 = lm(Strike ~ Country*Year, data = strike)
 
 M5 = lm(Strike ~ Infl*Centr + Country, data = strike)
 
+M6 = lm(Strike ~ Centr + Infl + log(Dens) + log(Demo) + Centr:Infl + Centr:log(Dens) + Infl:log(Demo), data = strike)
+
 
 # basic model
 M0 <- lm(Strike ~ 1, data = strike)
@@ -39,7 +41,7 @@ Mstep <- step(M2, scope=list(lower=M0, upper=Mfull), direction='both', trace=FAL
 
 M1 <- M2
 M2 <- Mfwd
-Mnames <- expression(M[ONE], M[TWO])
+Mnames <- expression(M[2], M[fwd])
 # AIC
 # calculate the long way for M1
 ll1 <- dnorm(strike$Strike, mean = predict(M1),
@@ -95,6 +97,60 @@ c(SSE1 = mean(sse1), SSE2 = mean(sse2)) # favors smaller of 2
 # in units of strike days
 c(SSE1 = sqrt(mean(sse1)/ntest), SSE2 = sqrt(mean(sse2)/ntest)) # favors smaller of 2
 mean(Lambda) # log(Lambda) < 0 which favors M2 > 0 M1
+
+
+dev.off()
+
+# model diagnostics
+res1 <- resid(M1)
+H1 <-  model.matrix(M1)
+H1 <- H1 %*% solve(crossprod(H1), t(H1))
+h1 <- diag(H1)
+# studentized residuals
+res.stu1 <- res1/sqrt(1-h1)
+
+# standardized student residuals
+res.stand1 <- res.stu1/sigma(M1)
+
+cex <- 0.8 
+par(mar = c(4,4,0.1,0.1))
+plot(predict(M1), res1, pch=21, bg="black", cex=cex, cex.axis=cex,
+     xlab="Predicted # of strike-hours", ylab="Residual strike-hours")
+points(predict(M1), res.stu1, pch=21, bg="red", cex=cex)
+legend(x="topleft", c("Residuals", "Studentized Residuals"), pch=21,
+       pt.bg = c("black", "red"), pt.cex=cex, cex=cex)
+
+
+res2 <- resid(M2)
+H2 <- model.matrix(M2)
+H2 <- H2 %*% solve(crossprod(H2), t(H2))
+h2 <- diag(H2)
+# studentized residuals
+res.stu2 <- res2/sqrt(1-h2)
+
+# standardized student residuals
+res.stand2 <- res.stu2/sigma(M2)
+
+cex <- 0.8 
+par(mar = c(4,4,0.1,0.1))
+plot(predict(M2), res, pch=21, bg="black", cex=cex, cex.axis=cex,  
+     xlab="Predicted # of strike-hours", ylab="Residual strike-hours")
+points(predict(M2), res.stu, pch=21, bg="red", cex=cex)
+legend(x="topleft", c("Residuals", "Studentized Residuals"), pch=21,
+       pt.bg = c("black", "red"), pt.cex=cex, cex=cex)
+# seems like multiplicative error
+
+# histogram of studentized residuals
+par(mar = c(4,4,0.1,0.1))
+hist.plot1 <- hist(res.stand1, breaks=75, freq = FALSE, cex.axis=cex, main="",
+                  xlab="Standardized, studentized residual strike activity")
+curve(dnorm(x), col='red', add=TRUE)
+
+# histogram of studentized residuals
+par(mar = c(4,4,0.1,0.1))
+hist.plot2 <- hist(res.stand2, breaks=100, freq = FALSE, cex.axis=cex, main = "",
+                  xlab="Standardized, studentized residual strike activity")
+curve(dnorm(x), col='red', add=TRUE)
 
 #plot cross-validation SSE and Lambda
 par(mfrow = c(1,2))

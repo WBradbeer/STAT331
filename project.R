@@ -39,7 +39,7 @@ Mback <- step(Mfull, scope=list(lower=M0, upper=Mfull), direction='backward', tr
 Mstep <- step(M2, scope=list(lower=M0, upper=Mfull), direction='both', trace=FALSE)
 
 
-models <- list(M2, )
+models <- list(M2, Mfwd)
 
  
 n <- length(strike$Strike)
@@ -94,4 +94,4 @@ curve(dnorm(x), col='red', add=TRUE)
 
 # leverage
 
-
+plot(predict(Mfwd), res)

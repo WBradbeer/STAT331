@@ -46,27 +46,59 @@ Mstep.log <- step(M3, scope=list(lower=M0.log, upper=Mfull.log), direction='both
 models <- list(M0, M1, M2, Mfwd, Mback, Mstep, M3, Mfwd.log, Mback.log, Mstep.log)
 
 
-n <- length(strike$Strike)
-samp.size <- 400
-results <- rep(0, length(models))
-results2 <- rep(0, length(models))
+M1 <- M1
+M2 <- Mfwd.log
+Mnames <- expression(M[ONE], M[TWO])
+# AIC
+# calculate the long way for M1
+ll1 <- dnorm(strike$Strike, mean = predict(M1),
+             sd = summary(M1)$sigma*sqrt(M1$df/nrow(strike)), # mle divides by n
+             log = TRUE) # loglikelihood
+ll1 <- sum(ll1)
+p1 <- length(M1$coef)+1 # number of parameters
+AIC1 <- -2*ll1 + 2*p1
+# calculate the R way
+AIC1 - AIC(M1)
+AIC2 <- AIC(M2) # for M2
+c(AIC1 = AIC1, AIC2 = AIC2) # favors Mfwd
+# PRESS
+press1 <- resid(M1)/(1-hatvalues(M1)) # M1
+press2 <-  resid(M2)/(1-hatvalues(M2)) # M2
+c(PRESS1 = sum(press1^2), PRESS2 = sum(press2^2)) # favors Mfwd
 
-for(i in 1:2000) {
-  # seperate training and test data
-  train.ind <- sample(n, samp.size)
-  strike.train <- strike[train.ind,]
-  strike.test <- strike[-train.ind,]
-  
-  j <- 1
-  for(m in models){
-    # train model
-    m.trn <- update(m, subset=train.ind)
-    # test model
-    m.res = predict.lm(m.trn, strike.test) - strike.test$Strike
-    results[j] <- results[j] + sum(m.res^2)
-    j <- j+1
-  }
-}
+# Cross-validation
+nreps <- 2e3 # number of replications
+ntot <- nrow(strike) # total number of observations
+ntrain <- 500 # size of training set
+ntest <- ntot-ntrain # size of test set
+sse1 <- rep(NA, nreps) # sum-of-square errors for each CV replication
+sse2 <- rep(NA, nreps)
+Lambda <- rep(NA, nreps) # likelihod ratio statistic for each replication
+system.time({
+  for(ii in 1:nreps) {
+    if(ii%%400 == 0) message("ii = ", ii)
+    # randomly select training observations
+    train.ind <- sample(ntot, ntrain) # training observations
+    # this is the more straightforward way of calculating the CV parameter estimates
+    # M1.cv <- lm(Strike ~ read + prog + race + ses + locus + read:prog + prog:ses,
+    #             data = strike, subset = train.ind)
+    # this is the faster R way
+    M1.cv <- update(M1, subset = train.ind)
+    M2.cv <- update(M2, subset = train.ind)
+    # testing residuals for both models
+    # that is, testing data - predictions with training parameters
+    M1.res <- strike$Strike[-train.ind] - predict(M1.cv, newdata = strike[-train.ind,])
+    M2.res <- strike$Strike[-train.ind] - (predict(M2.cv, newdata = strike[-train.ind,]))
+    # total sum of square errors
+    sse1[ii] <- sum((M1.res)^2)
+    sse2[ii] <- sum((M2.res)^2)
+    # testing likelihood ratio
+    M1.sigma <- sqrt(sum(resid(M1.cv)^2)/ntrain) # MLE of sigma
+    M2.sigma <- sqrt(sum(resid(M2.cv)^2)/ntrain)
+    Lambda[ii] <- sum(dnorm(M1.res, mean = 0, sd = M1.sigma, log = TRUE))
+    Lambda[ii] <- Lambda[ii] - sum(dnorm(M2.res, mean = 0, sd = M2.sigma, log = TRUE))
+  } })
+
 
 # model diagnostics
 res <- resid(Mback)
