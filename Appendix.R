@@ -117,6 +117,7 @@ summary(Mlogmacro)
 # and we will be calling Mfwd from above M_b 
 M_a <- M2 
 M_b <- Mfwd
+Mnames <- expression(M[2], M[fwd])
 
 # Section 3.1: Residual Plots
 
@@ -375,3 +376,57 @@ omit.ind
 press_a <-  resid(M_a)/(1-hatvalues(M_a)) # M2
 press_b <- resid(M_b)/(1-hatvalues(M_b)) # Mfwd
 c(PRESS_a = sum(press_a^2), PRESS_b = sum(press_b^2)) # favors M2
+
+
+
+
+# Section 3.3: Cross-Validation
+
+# Cross-validation
+nreps <- 2e3 # number of replications
+ntot <- nrow(strike) # total number of observations
+ntrain <- 500 # size of training set
+ntest <- ntot-ntrain # size of test set
+sse_a <- rep(NA, nreps) # sum-of-square errors for each CV replication
+sse_b <- rep(NA, nreps)
+Lambda <- rep(NA, nreps) # likelihod ratio statistic for each replication
+system.time({
+  for(ii in 1:nreps) {
+    if(ii%%400 == 0) message("ii = ", ii)
+    # randomly select training observations
+    train.ind <- sample(ntot, ntrain) # training observations
+    # this is the more straightforward way of calculating the CV parameter estimates
+    # M_a.cv <- lm(Strike ~ read + prog + race + ses + locus + read:prog + prog:ses,
+    #             data = strike, subset = train.ind)
+    # this is the faster R way
+    M_a.cv <- update(M_a, subset = train.ind)
+    M_b.cv <- update(M_b, subset = train.ind)
+    # testing residuals for both models
+    # that is, testing data - predictions with training parameters
+    M_a.res <- strike$Strike[-train.ind] - predict(M_a.cv, newdata = strike[-train.ind,])
+    M_b.res <- strike$Strike[-train.ind] - predict(M_b.cv, newdata = strike[-train.ind,])
+    # total sum of square errors
+    sse_a[ii] <- sum((M_a.res)^2)
+    sse_b[ii] <- sum((M_b.res)^2)
+    # testing likelihood ratio
+    M_a.sigma <- sqrt(sum(resid(M_a.cv)^2)/ntrain) # MLE of sigma
+    M_b.sigma <- sqrt(sum(resid(M_b.cv)^2)/ntrain)
+    Lambda[ii] <- sum(dnorm(M_a.res, mean = 0, sd = M_a.sigma, log = TRUE))
+    Lambda[ii] <- Lambda[ii] - sum(dnorm(M_b.res, mean = 0, sd = M_b.sigma, log = TRUE))
+  } })
+
+message("1:M2, 2:Mfwd")
+c(SSE_a = mean(sse_a), SSE_b = mean(sse_b)) # favors smaller of 2
+# in units of strike days
+c(SSE_a = sqrt(mean(sse_a)/ntest), SSE_b = sqrt(mean(sse_b)/ntest)) # favors smaller of 2
+mean(Lambda) # log(Lambda)
+
+
+#plot cross-validation SSE and Lambda
+par(mfrow = c(1,2))
+par(mar = c(4.5, 4.5, .1, .1))
+boxplot(x = list(sqrt(sse_a/ntest), sqrt(sse_b/ntest)), names = Mnames, cex = .7,
+        ylab = expression(RMSE^{test}), col = c("yellow", "orange"))
+hist(Lambda, breaks = 50, freq = FALSE, xlab = expression(Lambda^{test}),
+     main = "", cex = .7)
+abline(v = mean(Lambda), col = "red") # average value
